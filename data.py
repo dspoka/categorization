@@ -17,13 +17,14 @@ class data:
         self.target_language = parameters['target language']
         self.leave_out_language = (None if parameters['leave target language out'] 
                                    else self.target_language)
-        self.distance_metric = parameters['distance metric']
+        self.distance_metric = parameters['conceptual distance metric']
         self.pca_threshold = parameters['pca threshold']
         self.conc = parameters['conceptual features']
         self.perc = parameters['perceptual features']
         self.data_folder = parameters['data']
         self.input_sampling_responses = parameters['input sampling responses']
         self.data = parameters['data']
+        self.dr = parameters['dimensionality reduction']
         #
         #
         self.initialize_data()
@@ -50,7 +51,7 @@ class data:
         self.terms = A(sorted(self.term_indices[self.target_language].keys(),
                        key = lambda k : self.term_indices[self.target_language][k]))
         # creates list of terms for target language for quick access.
-        self.dump_situations()
+        # self.dump_situations()
         # creates a csv file with the representations used by the model in it
 
     def initialize_data(self):
@@ -84,6 +85,12 @@ class data:
         # conceptual_features == True, or returns an empty array and an empty matrix
         if self.conc == False: return np.zeros((0)), np.zeros((self.nS,0))
         # returns empty matrices if no conceptual features are to be used
+        if self.dr == False:
+            situations = np.zeros((self.nS, 0))
+            for language, cm in self.CMs.items():
+                if language == self.leave_out_language: continue
+                situations = np.hstack((situations, normalize(cm, norm = 'l2', axis = 1)))
+            return np.ones(situations.shape[1]), situations
         global_DM = np.zeros((self.nS, self.nS))
         for language, cm in self.CMs.items():
             if language == self.leave_out_language: continue
@@ -93,7 +100,6 @@ class data:
         # creates global distance matrix by summing the pairwise distances (according to
         # distance_metric) over all languages (with the exception of the leave_out_language if that
         # variable is set). Then normalizes distance matrix s.t. maximum is 1
-        # 
         pca = PCA()
         transformed = pca.fit_transform(global_DM)
         # creates an nS x n Components matrix by applying PCA to the global distance matrix
@@ -111,7 +117,7 @@ class data:
         transformed_centered = (transformed - transformed.mean(0)) / range_t.max() + 0.5
         # centers the transformed values s.t. the mean per feature is 0.5, the feature with the
         # highest eigenvalue has values s.t. max - min = 1 and the other features have proportional
-        # ranges according to their eigenvalues. 
+        # ranges according to their eigenvalues.
         return dim_weights, transformed_centered
 
     def initialize_perceptual_features(self):

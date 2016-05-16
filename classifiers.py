@@ -10,6 +10,7 @@ from collections import Counter
 from sklearn.preprocessing import normalize
 import cPickle as pickle
 from sklearn.metrics import pairwise_distances
+from scipy.spatial.distance import cosine
 
 A = np.array
 
@@ -326,6 +327,7 @@ class som(classifier):
         self.sigma_0 = parameters['som sigma_0']
         self.n_pretrain = parameters['som n pretrain']
         self.neighborhood = parameters['som neighborhood']
+        self.distance = parameters['som distance']
         #
         # initialize MAP
         self.size_y = self.size_x = self.size
@@ -389,7 +391,12 @@ class som(classifier):
     def get_bmu_ix(self, input_item, ignore_terms = False):
         # gets the map index of the best matching unit
         f = self.data.nT * ignore_terms
-        D = np.linalg.norm(self.map[:,:,f:] - input_item[f:], ord = 2, axis = 2)
+        input_item_adj = A([input_item[f:]])
+        if self.distance == 'cosine':
+            D = A([A([cosine(self.map[i,j,f:], input_item[f:])
+                      for j in range(self.map.shape[1])]) for i in range(self.map.shape[0])])
+        elif self.distance == 'euclidean':
+            D = np.linalg.norm(self.map[:,:,f:] - input_item[f:], ord = 2, axis = 2)
         return np.unravel_index(D.argmin(), self.map.shape[:2])
 
     def get_grid_distance(self, bmu_ix, neighborhood = 'euclidean'):
@@ -416,8 +423,9 @@ class som(classifier):
 
     def get_term_map(self):
         # returns a matrix the size of the SOM with the most likely term in every cell
-        return A([A([('%s   ' % (self.data.terms[np.argmax(self.map[i][j][:self.nterm])]
-                                 if np.sum(self.map[i,j,:self.nterm]) > 0 else '[]'))[:3]
+        
+        return A([A([('%s   ' % (self.data.terms[np.argmax(self.map[i][j][:self.data.nT])]
+                                 if np.sum(self.map[i,j,:self.data.nT]) > 0 else '[]'))[:3]
                      for j in range(self.map.shape[1])]) for i in range(self.map.shape[0])])
 
     def discriminate(self):

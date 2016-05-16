@@ -5,19 +5,20 @@ parameters = {
     'target language' : '111', # '111' for color, should correspond to TXT and TXT if 'input sampling responses' == 'corpus'
     #
     'test interval' : 100,
-    'n simulations' : 1,
-    'length simulation' : 5000,
+    'n simulations' : 10,
+    'length simulation' : 100,
     #
     'perceptual features' : True,
     'conceptual features' : True,
     'input sampling responses' : 'corpus', # uniform, corpus, siutation
     #
     'pca threshold' : 0.999,
+    'dimensionality reduction' : False,
     'leave-one-out' : False,
     # {True,False} TODO: works for GCM and GNB, but for ALCOVE (given dim. weights)??
     'leave target language out' : True,
     'classifier' : 'som', # {gnb, gcm, alcove, som}
-    'distance metric' : 'euclidean',
+    'conceptual distance metric' : 'euclidean',
     # {'euclidean', 'manhattan'} only if 'pca preprocessing matrix' = 'distance matrix'
     #
     # GCM PARAMETERS
@@ -46,6 +47,7 @@ parameters = {
     'som n pretrain' : 0,
     'som initialization bandwidth' : 0.1,
     'som neighborhood' : 'euclidean', # 'vonneuman'
+    'som distance' : 'cosine', # cosine, euclidean
     #
     # DISCRIMINATION EXPERIMENTS
     'discrimination data' : 'winawer'
