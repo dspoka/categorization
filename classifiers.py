@@ -104,7 +104,7 @@ class gnb(classifier):
         self.simulation = simulation
         self.time = time
         filename = '%s/model_%d_%d.p' % (self.data.dirname, simulation, time)
-        self.classifier = pickle.load(self.classifier, open(filename, 'rb'))
+        self.classifier = pickle.load(open(filename, 'rb'))
         return
 
     def predict_terms(self, test_items):
@@ -213,7 +213,7 @@ class alcove(classifier):
         # initializes dimension weights a_dim, either as uniform or as set to the relative
         # importance of the features in the data.
         if self.a_dim_initialization == 'uniform':
-            self.a_dim = np.ones(self.X[0].shape[0])/self.X[0].shape[0]
+            self.a_dim = np.ones(self.data.situations.shape[1])/self.data.situations.shape[1]
         elif self.a_dim_initialization == 'eigenvalues':
             self.a_dim = self.data.dim_weights.copy()
         self.hidden = A([])

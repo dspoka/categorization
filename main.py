@@ -87,7 +87,7 @@ def experiment_V_VII(params, folder_name, pool_size=3):
     params['folder name'] = '/Users/barendbeekhuizen/Desktop/%s' % folder_name
     param_combos = [[sam, perc, conc, d, classifier, init]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
-                    for d in ['color_rus', 'color_eng'] for classifier in ['gcm', 'gnb', 'alcove'] 
+                    for d in ['color_rus', 'color_eng'] for classifier in ['alcove','gcm', 'gnb'] 
                     for init in ['eigenvalues', 'uniform'] 
                     if (not (perc == False and conc == False)) and (init == 'uniform' or classifier == 'alcove')]
     features = ['input sampling responses', 'perceptual features', 'conceptual features', 'data',
@@ -200,7 +200,7 @@ def train_and_test(arguments):
 
 def main():
     params = parameters.parameters
-    experiment_VIII(params, sys.argv[1], int(sys.argv[2]))
+    experiment_V_VII(params, sys.argv[1], int(sys.argv[2]))
 
 if __name__ == "__main__":
     main()

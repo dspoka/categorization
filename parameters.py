@@ -5,8 +5,8 @@ parameters = {
     'target language' : '111', # '111' for color, should correspond to TXT and TXT if 'input sampling responses' == 'corpus'
     #
     'test interval' : 100,
-    'n simulations' : 1,
-    'length simulation' : 5000,
+    'n simulations' : 10,
+    'length simulation' : 25000,
     #
     'perceptual features' : True,
     'conceptual features' : True,
