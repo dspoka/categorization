@@ -8,9 +8,24 @@ import os
 #
 import cPickle as pickle
 
+def experiment_toy(params, folder_name, pool_size=3):
+    params['classifier'] = 'som'
+    params['folder name'] = folder_name
+    param_combos = [[sam, perc, conc, d]
+                    for sam in ['corpus'] for perc in [True,False] for conc in [True,False]
+                    for d in ['color_rus'] if not (perc == False and conc == False)]
+    features = ['input sampling responses', 'perceptual features', 'conceptual features', 'data']
+    shorthands = ['sam', 'perc', 'conc', 'data']
+    arguments = [(param_combo, params, features, shorthands) for param_combo in param_combos]
+    pool = multiprocessing.Pool(processes = pool_size)
+    As = pool.map(train, arguments)
+    As = pool.map(test, arguments)
+    As = pool.map(discrimination_experiment, arguments)
+    pool.close()
+    
 def experiment_VI(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
-    params['folder name'] = '/Users/barendbeekhuizen/Desktop/%s' % folder_name
+    params['folder name'] = folder_name
     param_combos = [[sam, perc, conc, d]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
                     for d in ['color_rus', 'color_eng'] if not (perc == False and conc == False)]
@@ -31,7 +46,7 @@ def experiment_VI(params, folder_name, pool_size=3):
 
 def experiment_I_III(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
-    params['folder name'] = '/Users/barendbeekhuizen/Desktop/%s' % folder_name
+    params['folder name'] =  folder_name
     param_combos = [[sam, perc, conc, d, alpha, a, size, lamSig, pretrain]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
                     for d in ['color_rus', 'color_eng'] 
@@ -50,7 +65,7 @@ def experiment_I_III(params, folder_name, pool_size=3):
 
 def experiment_VIII(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
-    params['folder name'] = '%s' % folder_name
+    params['folder name'] = folder_name
     params['data'] = 'color_eng'
     param_combos = [[sam, perc, conc]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
@@ -67,7 +82,7 @@ def experiment_VIII(params, folder_name, pool_size=3):
 
 def experiment_IV(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
-    params['folder name'] = '%s' % folder_name
+    params['folder name'] =folder_name
     param_combos = [[sam, perc, conc, d, cutoff, dm]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
                     for d in ['color_rus', 'color_eng'] for cutoff in [0.9, 0.99, 0.999]
@@ -84,7 +99,7 @@ def experiment_IV(params, folder_name, pool_size=3):
     return
 
 def experiment_V_VII(params, folder_name, pool_size=3):
-    params['folder name'] = '%s' % folder_name
+    params['folder name'] = folder_name
     param_combos = [[sam, perc, conc, d, classifier, init]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
                     for d in ['color_rus', 'color_eng'] for classifier in ['alcove','gcm', 'gnb'] 
@@ -200,7 +215,7 @@ def train_and_test(arguments):
 
 def main():
     params = parameters.parameters
-    experiment_V_VII(params, sys.argv[1], int(sys.argv[2]))
+    experiment_toy(params, sys.argv[1], int(sys.argv[2]))
 
 if __name__ == "__main__":
     main()
