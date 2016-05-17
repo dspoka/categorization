@@ -50,7 +50,7 @@ def experiment_I_III(params, folder_name, pool_size=3):
 
 def experiment_VIII(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
-    params['folder name'] = '/Users/barendbeekhuizen/Desktop/%s' % folder_name
+    params['folder name'] = '%s' % folder_name
     params['data'] = 'color_eng'
     param_combos = [[sam, perc, conc]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
@@ -67,7 +67,7 @@ def experiment_VIII(params, folder_name, pool_size=3):
 
 def experiment_IV(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
-    params['folder name'] = '/Users/barendbeekhuizen/Desktop/%s' % folder_name
+    params['folder name'] = '%s' % folder_name
     param_combos = [[sam, perc, conc, d, cutoff, dm]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
                     for d in ['color_rus', 'color_eng'] for cutoff in [0.9, 0.99, 0.999]
@@ -84,7 +84,7 @@ def experiment_IV(params, folder_name, pool_size=3):
     return
 
 def experiment_V_VII(params, folder_name, pool_size=3):
-    params['folder name'] = '/Users/barendbeekhuizen/Desktop/%s' % folder_name
+    params['folder name'] = '%s' % folder_name
     param_combos = [[sam, perc, conc, d, classifier, init]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
                     for d in ['color_rus', 'color_eng'] for classifier in ['alcove','gcm', 'gnb'] 
