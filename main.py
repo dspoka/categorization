@@ -6,7 +6,7 @@ import sys
 import multiprocessing
 import os
 #
-import cPickle as pickle
+import dill as pickle
 
 def experiment_toy(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
@@ -155,7 +155,8 @@ def train(arguments):
     classifier = classifiers[params['classifier']]
     dirname = '%s/%s' % (params['folder name'], params['subfolder name'])
     os.makedirs(dirname)
-    pickle.dump(params, open('%s/parameters.p' % dirname, 'wb'))
+    with open('%s/parameters.p' % dirname, 'wb') as fh:
+        pickle.dump(params, fh)
     #
     d = data(params)
     for simulation in range(params['n simulations']):
@@ -205,7 +206,8 @@ def train_and_test(arguments):
     classifier = classifiers[params['classifier']]
     dirname = '%s/%s' % (params['folder name'], params['subfolder name'])
     os.makedirs(dirname)
-    pickle.dump(params, open('%s/parameters.p' % dirname, 'wb'))
+    with open('%s/parameters.p' % dirname, 'wb') as fh:
+        pickle.dump(params, fh)
     #
     d = data(params)
     for simulation in range(params['n simulations']):

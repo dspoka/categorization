@@ -56,7 +56,8 @@ class data:
     def initialize_data(self):
         # sets term_indices (per language, languages (set of languages, nS (number of situations)
         # as wel as CMs (count matrices for every language; { language : nS x nT_language }
-        self.elicited_features = list(csv.reader(open('%s/elicited_features.csv' % self.data)))
+        with open('%s/elicited_features.csv' % self.data, 'r') as fh:
+            self.elicited_features = list(csv.reader(fh))
         self.term_indices = dd(lambda : {})
         self.languages = set()
         self.nS = 0
@@ -121,8 +122,8 @@ class data:
         if self.perc == False:
             return np.zeros(0), np.zeros((self.nS,0))
         else:
-            fh_perc = open('%s/perceptual_features.csv' % self.data_folder)
-            perceptual = A([A([float(c) for c in row]) for row in csv.reader(fh_perc)])
+            with open('%s/perceptual_features.csv' % self.data_folder, 'r') as fh:
+                perceptual = A([A([float(c) for c in row]) for row in csv.reader(fh)])
             range_ = perceptual.max(0) - perceptual.min(0)
             dim_weights = range_ / range_.max()
             perceptual_centered = (perceptual - perceptual.mean(0)) / range_.max() + 0.5
@@ -135,8 +136,8 @@ class data:
         # returns the probabilities of the terms as read off from a frequencies.csv file
         count = np.ones(len(self.term_indices[self.target_language]))
         if self.input_sampling_responses == 'corpus':
-            freqs = list(csv.reader(open('%s/frequencies.csv' % self.data_folder)))
-            freqs = [f for f in freqs if f[0] == self.target_language]
+            with open('%s/frequencies.csv' % self.data_folder, 'r') as fh:
+                freqs = [f for f in csv.reader(fh) if f[0] == self.target_language]
             for language, word, freq in freqs:
                 word_ix = self.term_indices[language][word]
                 count[word_ix] = float(freq)
@@ -147,7 +148,7 @@ class data:
         # writes the feature values per situation
         header = ','.join([ 'perc%d' % (i) for i in range(self.nFP) ] +
                           [ 'conc%d' % (i) for i in range(self.nFC) ])
-        with open('%s/situations.csv' % self.dirname, 'wb') as fh:
+        with open('%s/situations.csv' % self.dirname, 'w') as fh:
             fh.write('%s\n' % header)
             for row in self.situations:
                 fh.write('%s\n' % ','.join('%.3e' % np.real(cell) for cell in row))

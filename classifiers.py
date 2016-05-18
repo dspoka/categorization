@@ -8,7 +8,7 @@ from collections import Counter
 # DELEER import csv
 #from scipy.spatial.distance import euclidean
 from sklearn.preprocessing import normalize
-import cPickle as pickle
+import dill as pickle
 from sklearn.metrics import pairwise_distances
 
 A = np.array
@@ -50,7 +50,7 @@ class classifier:
     def train(self, test = False, dump = False):
         # training the model for n_iterations iterations, writing away the state of the model
         # every len_interval iterations if dump == True. Runs test() if test == true.
-        print 'training for simulation %d of %s' % (self.simulation, self.data.dirname)
+        print('training for simulation %d of %s' % (self.simulation, self.data.dirname))
         d = self.data
         while self.time < self.n_iterations:
             self.time += self.len_interval
@@ -63,14 +63,15 @@ class classifier:
         # tests the whole set of situations and writes both convergence with adult modal naming
         # behavior as well as the distributions over terms per situation to output files.
         # 
-        self.development_fh = open('%s/results.csv' % self.data.dirname, 'ab')
-        self.convergence_fh = open('%s/convergence.csv' % self.data.dirname, 'ab')
+        self.development_fh = open('%s/results.csv' % self.data.dirname, 'a')
+        self.convergence_fh = open('%s/convergence.csv' % self.data.dirname, 'a')
         #
         posterior = self.predict_terms(self.data.situations)
         predicted_best_term = posterior.argmax(1)
         mpt = self.data.max_P_t_given_s
         predictions = (predicted_best_term == mpt)[mpt != -1]
-        self.convergence_fh.write('%d,%d,%.3f\n' % (self.simulation, self.time, np.mean(predictions)))
+        self.convergence_fh.write('%d,%d,%.3f\n' % 
+                                  (self.simulation, self.time, np.mean(predictions)))
         for i in range(self.data.nS):
             self.development_fh.write('%d,%d,%d,%s\n' % (self.simulation, self.time, i,
                                                     ','.join(['%.3f' % p for p in posterior[i]])))
@@ -95,16 +96,16 @@ class gnb(classifier):
 
     def dump(self):
         # pickles the sklearn GaussianNB classifier
-        filename = '%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time)
-        pickle.dump(self.classifier, open(filename, 'wb'))
+        with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time),'wb') as fh:
+            pickle.dump(self.classifier, fh)
         return
 
     def load(self, simulation, time):
         # loads the pickled sklearn GaussianNB classifier
         self.simulation = simulation
         self.time = time
-        filename = '%s/model_%d_%d.p' % (self.data.dirname, simulation, time)
-        self.classifier = pickle.load(open(filename, 'rb'))
+        with open('%s/model_%d_%d.p' % (self.data.dirname, simulation, time), 'rb') as fh:
+            self.classifier = pickle.load(fh)
         return
 
     def predict_terms(self, test_items):
@@ -143,14 +144,14 @@ class gcm(classifier):
 
     def dump(self):
         # pickles the X and Y vectors (situations and terms).
-        filename = '%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time)
-        pickle.dump((self.X,self.Y), open(filename, 'wb'))
+        with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time),'wb') as fh:
+            pickle.dump((self.X,self.Y), fh)
 
     def load(self, simulation, time):
         self.simulation = simulation
         self.time = time
-        filename = '%s/model_%d_%d.p' % (self.data.dirname, simulation, time)
-        self.X, self.Y = pickle.load(open(filename, 'rb')) 
+        with open('%s/model_%d_%d.p' % (self.data.dirname, simulation, time), 'rb') as fh:
+            self.X, self.Y = pickle.load(fh) 
         return
 
     def predict_terms(self, test_items):
@@ -285,16 +286,16 @@ class alcove(classifier):
 
     def dump(self):
         # pickles the layers of the neural network
-        filename = '%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time)
-        pickle.dump((self.a_dim, self.hidden, self.out, self.w), open(filename, 'wb'))
+        with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time),'wb') as fh:
+            pickle.dump((self.a_dim, self.hidden, self.out, self.w), fh)
         return
 
     def load(self, simulation, time):
         # loads the pickled NN layers
         self.simulation = simulation
         self.time = time
-        filename = '%s/model_%d_%d.p' % (self.data.dirname, simulation, time)
-        self.a_dim, self.hidden, self.out, self.w = pickle.load(open(filename, 'rb')) 
+        with open('%s/model_%d_%d.p' % (self.data.dirname, simulation, time), 'rb') as fh:
+            self.a_dim, self.hidden, self.out, self.w = pickle.load(fh) 
         return
 
     def predict_terms(self, test_items):
@@ -360,15 +361,15 @@ class som(classifier):
 
     def dump(self):
         # pickles the SOM
-        pickle.dump(self.map.astype('float16'), 
-                    open('%s/model_%d_%d.p' % 
-                        (self.data.dirname, self.simulation, self.time), 'wb'))
+        with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time), 'wb') as fh:
+            pickle.dump(self.map.astype('float16'), fh)
 
     def load(self, simulation, time):
         # loads a pickled SOM
         self.simulation = simulation
         self.time = time
-        self.map = pickle.load(open('%s/model_%d_%d.p' % (self.data.dirname, simulation, time)))
+        with open('%s/model_%d_%d.p' % (self.data.dirname, simulation, time), 'rb') as fh:
+            self.map = pickle.load(fh)
 
 
     def get_input_item(self, features, term = None):
@@ -428,10 +429,10 @@ class som(classifier):
         distances = pairwise_distances(positions, metric = 'euclidean')
         dn, tn = self.data.dirname, self.data.discrimination_data
         terms = self.data.terms[self.predict_terms(self.data.discrimination_stimuli).argmax(1)]
-        with open('%s/discrimination_terms_%s.csv' % (dn, tn), 'ab') as o:
+        with open('%s/discrimination_terms_%s.csv' % (dn, tn), 'a') as o:
             for i,t in enumerate(terms):
                 o.write('%d,%d,%d,%s\n' % (self.simulation, self.time, i, t))
-        with open('%s/confusability_%s.csv' % (dn, tn), 'ab') as o:
+        with open('%s/confusability_%s.csv' % (dn, tn), 'a') as o:
             for i in range(distances.shape[0]):
                 for j in range(i+1, distances.shape[0]):
                     o.write('%d,%d,%d,%d,%s,%s,%.3f\n' %
