@@ -134,13 +134,16 @@ class data:
 
     def initialize_P_t(self):
         # returns the probabilities of the terms as read off from a frequencies.csv file
+        print(self.term_indices)
         count = np.ones(len(self.term_indices[self.target_language]))
         if self.input_sampling_responses == 'corpus':
             with open('%s/frequencies.csv' % self.data_folder, 'r') as fh:
                 freqs = [f for f in csv.reader(fh) if f[0] == self.target_language]
             for language, word, freq in freqs:
-                word_ix = self.term_indices[language][word]
-                count[word_ix] = float(freq)
+                try:
+                    word_ix = self.term_indices[language][word]
+                    count[word_ix] = float(freq)
+                except KeyError: pass
         return normalize([count], norm = 'l1')[0]
 
         
