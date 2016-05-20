@@ -97,7 +97,7 @@ class gnb(classifier):
     def dump(self):
         # pickles the sklearn GaussianNB classifier
         with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time),'wb') as fh:
-            pickle.dump(self.classifier, fh)
+            pickle.dump((self.classifier, self.Y), fh)
         return
 
     def load(self, simulation, time):
@@ -105,7 +105,7 @@ class gnb(classifier):
         self.simulation = simulation
         self.time = time
         with open('%s/model_%d_%d.p' % (self.data.dirname, simulation, time), 'rb') as fh:
-            self.classifier = pickle.load(fh)
+            self.classifier, self.Y = pickle.load(fh)
         return
 
     def predict_terms(self, test_items):
