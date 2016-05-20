@@ -10,6 +10,7 @@ from collections import Counter
 from sklearn.preprocessing import normalize
 import dill as pickle
 from sklearn.metrics import pairwise_distances
+import os
 
 A = np.array
 
@@ -63,8 +64,14 @@ class classifier:
         # tests the whole set of situations and writes both convergence with adult modal naming
         # behavior as well as the distributions over terms per situation to output files.
         # 
-        self.development_fh = open('%s/results.csv' % self.data.dirname, 'a')
-        self.convergence_fh = open('%s/convergence.csv' % self.data.dirname, 'a')
+        development_fn = '%s/development.csv' % self.data.dirname
+        convergence_fn = '%s/convergence.csv' % self.data.dirname
+        self.development_fh = open(development_fn, 'a')
+        self.convergence_fh = open(convergence_fn, 'a')
+        if os.path.getsize(development_fn) == 0: 
+            self.development_fh.write('simulation,time,situation,%s\n' % ','.join(self.data.terms))
+        if os.path.getsize(convergence_fn) == 0: 
+            self.convergence_fh.write('simulation,time,score\n')
         #
         posterior = self.predict_terms(self.data.situations)
         predicted_best_term = posterior.argmax(1)
@@ -433,10 +440,15 @@ class som(classifier):
         distances = pairwise_distances(positions, metric = 'euclidean')
         dn, tn = self.data.dirname, self.data.discrimination_data
         terms = self.data.terms[self.predict_terms(self.data.discrimination_stimuli).argmax(1)]
-        with open('%s/discrimination_terms_%s.csv' % (dn, tn), 'a') as o:
+
+        d_fn = '%s/discrimination_terms_%s.csv' % (dn, tn)
+        dc_fn = '%s/discrimination_confusability_%s.csv' % (dn, tn)
+        with open(d_fn, 'a') as o:
+            if os.path.getsize(d_fn) == 0: o.write('simulation,time,stimulus,term\n')
             for i,t in enumerate(terms):
                 o.write('%d,%d,%d,%s\n' % (self.simulation, self.time, i, t))
-        with open('%s/confusability_%s.csv' % (dn, tn), 'a') as o:
+        with open(dc_fn, 'a') as o:
+            if os.path.getsize(dc_fn) == 0: o.write('simulation,time,stimulus.1,stimulus.2,term.1,term.2,distance\n')
             for i in range(distances.shape[0]):
                 for j in range(i+1, distances.shape[0]):
                     o.write('%d,%d,%d,%d,%s,%s,%.3f\n' %

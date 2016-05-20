@@ -1,12 +1,12 @@
 parameters = {
-    'data' : 'color_rus',
+    'data' : 'color_eng',
     'folder name' : None,
     'subfolder name' : None,
     'target language' : '111', # '111' for color, should correspond to TXT and TXT if 'input sampling responses' == 'corpus'
     #
     'test interval' : 100,
-    'n simulations' : 2,
-    'length simulation' : 2000,
+    'n simulations' : 5,
+    'length simulation' : 1000,
     #
     'perceptual features' : True,
     'conceptual features' : True,
@@ -40,11 +40,11 @@ parameters = {
     'som alpha' : 0.05,
     'som a' : 0.2,
     'som c' : 1.0,
-    'som size' : 10,
+    'som size' : 8,
     'som sigma_0' : 1.0,
     'som lambda_sigma' : 2000,
     'som n pretrain' : 0,
-    'som initialization bandwidth' : 0.1,
+    'som initialization bandwidth' : 0.01,
     'som neighborhood' : 'euclidean', # 'vonneuman'
     #
     # DISCRIMINATION EXPERIMENTS

@@ -8,20 +8,24 @@ import os
 #
 import dill as pickle
 
-def experiment_toy(params, folder_name, pool_size=3):
+def experiment_space(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
     params['folder name'] = folder_name
+    params['data'] = 'space_all_LM1'
     param_combos = [[sam, perc, conc, d]
-                    for sam in ['corpus'] for perc in [True,False] for conc in [True,False]
-                    for d in ['color_rus'] if not (perc == False and conc == False)]
-    features = ['input sampling responses', 'perceptual features', 'conceptual features', 'data']
-    shorthands = ['sam', 'perc', 'conc', 'data']
+                    for sam in ['corpus','uniform'] for perc in [False] for conc in [True]
+                    for d in ['dut', 'bas', 'tha'] if not (perc == False and conc == False)]
+    features = ['input sampling responses', 'perceptual features', 'conceptual features', 'target language']
+    shorthands = ['sam', 'perc', 'conc', 'language']
     arguments = [(param_combo, params, features, shorthands) for param_combo in param_combos]
     pool = multiprocessing.Pool(processes = pool_size)
-    As = pool.map(train, arguments)
-    As = pool.map(test, arguments)
-    As = pool.map(discrimination_experiment, arguments)
-    pool.close()
+    for i in arguments:
+        train(i)
+        test(i)
+    #As = pool.map(train, arguments)
+    #As = pool.map(test, arguments)
+    #As = pool.map(discrimination_experiment, arguments)
+    #pool.close()
     
 def experiment_VI(params, folder_name, pool_size=3):
     params['classifier'] = 'som'
@@ -102,7 +106,7 @@ def experiment_V_VII(params, folder_name, pool_size=3):
     params['folder name'] = folder_name
     param_combos = [[sam, perc, conc, d, classifier, init]
                     for sam in ['corpus', 'uniform'] for perc in [True,False] for conc in [True,False]
-                    for d in ['color_rus', 'color_eng'] for classifier in ['alcove','gcm', 'gnb'] 
+                    for d in ['color_rus', 'color_eng'] for classifier in ['alcove', 'gcm', 'gnb'] 
                     for init in ['eigenvalues', 'uniform'] 
                     if (not (perc == False and conc == False)) and (init == 'uniform' or classifier == 'alcove')]
     features = ['input sampling responses', 'perceptual features', 'conceptual features', 'data',
@@ -217,7 +221,7 @@ def train_and_test(arguments):
 
 def main():
     params = parameters.parameters
-    experiment_toy(params, sys.argv[1], int(sys.argv[2]))
+    experiment_space(params, sys.argv[1], int(sys.argv[2]))
 
 if __name__ == "__main__":
     main()
