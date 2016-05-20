@@ -307,8 +307,12 @@ class alcove(classifier):
             a_hid, a_out = self.get_activations(a_in)
             e_a_out = np.nan_to_num(np.exp(self.phi * a_out))
             e_a_outs.append(e_a_out)
-        e_a_outs = A(e_a_outs)
-        return normalize(e_a_outs, norm = 'l1', axis = 1).T[self.out.argsort()].T
+        normalized = normalize(A(e_a_outs), norm = 'l1', axis = 1)
+        normalized_all_terms = np.zeros((test_items.shape[0], self.data.nT))
+        for i, k in enumerate(self.out):
+            normalized_all_terms[:,k] = normalized[:,i]
+        return normalized_all_terms
+        #return normalize(e_a_outs, norm = 'l1', axis = 1).T[self.out.argsort()].T
     
 class som(classifier):
     # Self-Organizing Map
@@ -361,7 +365,7 @@ class som(classifier):
 
     def dump(self):
         # pickles the SOM
-        with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time), 'wb') as fh:
+        with open('%s/model_%d_%d.p' % (self.data.dirname, self.simulation, self.time),'wb') as fh:
             pickle.dump(self.map.astype('float16'), fh)
 
     def load(self, simulation, time):
