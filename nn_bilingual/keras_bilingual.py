@@ -6,8 +6,18 @@ from keras.optimizers import SGD
 from keras.utils.visualize_util import plot
 from keras.layers import Merge, merge
 from keras.layers import Input
+from keras import callbacks
+import matplotlib.pyplot as plt
 import time
-
+''' []test on 101 unique points ceiling, and test on 71 real ones
+	[]print out situation mistakes with the sentence / image. number of mistakes made
+	[]inspect the drop of mistakes
+	[]run uniform to get other languages sets, and dutch with freq
+	[X]numpy heatmaps for the gates
+	[]numpy heatmaps subtracting 2 things trained.
+	[]run smaller batches
+	[]make graphs from paper of top situation answers vs time
+'''
 np.set_printoptions(threshold=np.nan)
 
 def set_pca_weights(pca_filepath):
@@ -43,16 +53,20 @@ def load_english_data(english_filepath):
 	    # 1 = german
 	    X_data.append(data[:PCA_dimension+1])
 	    y_data.append(data[PCA_dimension+1:])
-	X_train = X_data[:5000]
-	y_train = y_data[:5000]
-	X_test = X_data[5000:]
-	y_test = y_data[5000:]
-	return X_train,y_train, X_test, y_test
+	X_train = X_data[:200]
+	y_train = y_data[:200]
+	X_test = X_data[9000:]
+	y_test = y_data[9000:]
+	X_validation = X_data[8000:9000]
+	y_validation = y_data[8000:9000]
+
+	return X_train,y_train,X_validation, y_validation, X_test, y_test
 
 REAL = True
 # REAL = False
 english_filepath = 'results_tensor.csv'
 pca_filepath = 'results_PCA.csv'
+training_epoch = 200
 if (REAL == True):
 	time_stamp = time.strftime("%m-%d-%Y-%H:%M")
 	data_directory = 'data/'
@@ -69,7 +83,7 @@ else:
 	PCA_dimension = 3
 	language_embedding_dimension = 4
 
-X_train, y_train, X_test, y_test = load_english_data(english_filepath)
+X_train,y_train, X_validation, y_validation, X_test, y_test = load_english_data(english_filepath)
 
 # unique_data = [list(x) for x in set(tuple(x) for x in XY_data)]
 # print len(unique_data)
@@ -82,12 +96,13 @@ language_input = Input(shape=(PCA_dimension+1,))
 # gets the pca over all languages to initialize gates to
 
 gate_weights = set_pca_weights(pca_filepath)
+init_gate = gate_weights
 
 gate_layer = Dense(PCA_dimension+1, activation='linear', input_dim=PCA_dimension+1, weights=gate_weights)(language_input)
 # _____________________________________________#
 
 # _____________English Middle Layer____________#
-english_representation = Dense(language_embedding_dimension,activation='linear', init='uniform')(gate_layer)
+english_representation = Dense(language_embedding_dimension,activation='relu', init='uniform')(gate_layer)
 
 # _____________________________________________#
 
@@ -103,14 +118,18 @@ english_model.compile(loss='mean_squared_error',
               optimizer=sgd,
               metrics=['accuracy'])
 
-english_model.fit(X_train, y_train,
-          nb_epoch=1,
-          batch_size=1)
+
+remote = callbacks.RemoteMonitor(root='http://localhost:9000')
+
+# english_model.fit(X_train, y_train, nb_epoch=10, batch_size=1)
+english_model.fit(X_train, y_train, batch_size=1, validation_data=(X_validation, y_validation),
+	nb_epoch=training_epoch, callbacks=[remote])
+
 english_score = english_model.evaluate(X_test, y_test, batch_size=10)
 # _____________________________________________#
 
 
-german_representation = Dense(language_embedding_dimension,activation='linear', init='uniform')(gate_layer)
+german_representation = Dense(language_embedding_dimension,activation='relu', init='uniform')(gate_layer)
 # bilingual_representation = merge([english_representation,german_representation], mode='concat')
 
 # german_predictions = Dense(eng_num_preps+ger_num_preps, init='uniform', activation='softmax')(bilingual_representation)
@@ -121,7 +140,7 @@ merged_predictions = merge([english_predictions,german_predictions], mode='sum')
 
 bilingual_model = Model(name='bilingual', input=language_input, output=merged_predictions)
 
-# print "english_score", english_score
+print "english_score", english_score
 
 # plot(language_input, to_file='language_input.png')
 # plot(english_representation, to_file='english_representation.png')
@@ -150,10 +169,30 @@ def output_experiment(models):
 		g.write(str(model.to_json()))
 		g.close()
 
-		plot(model, to_file=directory+'/'+model.name+'.png')
+		plot(model, show_shapes=True, to_file=directory+'/'+model.name+'.png')
 	# weights = bilingual_model.get_weights()
 	# g = open('keras_bilingual_weights.txt','w')
 	# g.write(str(weights))
 	# g.close()
 
-output_experiment([english_model, bilingual_model])
+def visualize_gates():
+	x_old = init_gate[0].diagonal()
+	x_final = english_model.get_weights()[0].diagonal()
+	x_index = [i for i in range(len(x_old)+1)]
+	y_index = [0,1,2,3]
+
+	intensity = np.concatenate(([x_old], [x_final], [np.subtract(x_final,x_old)]), axis=0)
+
+	print x_old
+	print x_final
+	print np.subtract(x_final, x_old)
+
+	x, y = np.meshgrid(x_index, y_index)
+
+	plt.pcolormesh(x, y, intensity)
+	plt.colorbar() #need a colorbar to show the intensity scale
+	plt.show() #boom
+
+
+# output_experiment([english_model, bilingual_model])
+# visualize_gates()
