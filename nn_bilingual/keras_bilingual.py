@@ -9,85 +9,97 @@ from keras.layers import Input
 from keras import callbacks
 import matplotlib.pyplot as plt
 import time
-''' []test on 101 unique points ceiling, and test on 71 real ones
-	[]print out situation mistakes with the sentence / image. number of mistakes made
-	[]inspect the drop of mistakes
-	[]run uniform to get other languages sets, and dutch with freq
-	[X]numpy heatmaps for the gates
-	[]numpy heatmaps subtracting 2 things trained.
-	[]run smaller batches
-	[]make graphs from paper of top situation answers vs time
+import itertools
+
+''' [x]test on 101 unique points ceiling
+    [] and test on 71 real ones
+    []print out situation mistakes with the sentence / image. number of mistakes made
+    []inspect the drop of mistakes
+    []run uniform to get other languages sets, and dutch with freq
+    [X]numpy heatmaps for the gates
+    []numpy heatmaps subtracting 2 things trained.
+    []run smaller batches
+    []make graphs from paper of top situation answers vs time
+    make inputs all be arrays of integers not list strings
 '''
 np.set_printoptions(threshold=np.nan)
 
 def set_pca_weights(pca_filepath):
-	'''expects a file with weight on a each new line '''
-	pca_results = open(data_directory+pca_filepath,'r')
-	pca_weights = np.zeros((PCA_dimension+1,PCA_dimension+1))
-	i = 0
-	for line in pca_results:
-		a = float(line.strip())
-		pca_weights[i][i] = a
-		i +=1
-	pca_weights[i][i] = 1.0
-	# unsure what to set the language gate to start at
-	# currently set to 1
-	bias = np.concatenate((np.zeros(PCA_dimension),np.ones(1)))
-	pca_results.close()
-	return [pca_weights,bias]
+    '''expects a file with weight on a each new line '''
+    pca_results = open(data_directory+pca_filepath,'r')
+    pca_weights = np.zeros((PCA_dimension+1,PCA_dimension+1))
+    i = 0
+    for line in pca_results:
+        a = float(line.strip())
+        pca_weights[i][i] = a
+        i +=1
+    pca_weights[i][i] = 1.0
+    # unsure what to set the language gate to start at
+    # currently set to 1
+    bias = np.concatenate((np.zeros(PCA_dimension),np.ones(1)))
+    pca_results.close()
+    return [pca_weights,bias]
 
 def load_english_data(english_filepath):
-	''' 1. seperate train and test better
-		2. change number of iterations for test/train
-	'''
-	f = open(data_directory+english_filepath,'r')
-	XY_data=[]
-	X_data = []
-	y_data = []
-	second_language = [0 for x in range(ger_num_preps)]
-	for line in f:
-	    data = line.strip().split(',') + [0] + second_language
-	    XY_data.append(data)
-	    # add one to signify what language
-	    # 0 = english
-	    # 1 = german
-	    X_data.append(data[:PCA_dimension+1])
-	    y_data.append(data[PCA_dimension+1:])
-	X_train = X_data[:200]
-	y_train = y_data[:200]
-	X_test = X_data[9000:]
-	y_test = y_data[9000:]
-	X_validation = X_data[8000:9000]
-	y_validation = y_data[8000:9000]
+    ''' 1. seperate train and test better
+        2. change number of iterations for test/train
+    '''
+    f = open(data_directory+english_filepath,'r')
+    g = open(data_directory+'debug_data.csv','w')
 
-	return X_train,y_train,X_validation, y_validation, X_test, y_test
+    XY_data=[]
+    X_data = []
+    y_data = []
+    X_test = []
+    y_test = []
+    second_language = [0 for x in range(ger_num_preps)]
+    for line in f:
+        data = line.strip().split(',')
+        data = map(float,data)
+        data.insert(PCA_dimension,0) # sets the language 0 is english
+        data = data + second_language
+        X_data.append(data[:PCA_dimension+1]) # add one is for language
+        y_data.append(data[PCA_dimension+1:])
+        XY_data.append(data)
+
+    X_train = X_data[:5000]
+    y_train = y_data[:5000]
+
+    XY_test = [list(x) for x in set(tuple(x) for x in XY_data)] #unique 106
+    for unique in XY_test:
+      X_test.append(unique[:PCA_dimension+1])
+      y_test.append(unique[PCA_dimension+1:])
+    X_validation = X_test
+    y_validation = y_test
+    y_test = np.array(y_test)
+    return X_train, y_train, X_validation, y_validation, X_test, y_test
 
 REAL = True
 # REAL = False
 english_filepath = 'results_tensor.csv'
 pca_filepath = 'results_PCA.csv'
-training_epoch = 200
+training_epoch = 300
 if (REAL == True):
-	time_stamp = time.strftime("%m-%d-%Y-%H:%M")
-	data_directory = 'data/'
-	german_filepath = 'NEED TO FILL IN'
-	eng_num_preps = 14
-	ger_num_preps = 10
-	PCA_dimension = 56
-	language_embedding_dimension = 28
+    time_stamp = time.strftime("%m-%d-%Y-%H:%M")
+    data_directory = 'data/'
+    german_filepath = 'NEED TO FILL IN'
+    eng_num_preps = 14
+    ger_num_preps = 10
+    PCA_dimension = 56
+    language_embedding_dimension = 28
 else:
-	data_directory = 'fake_data/'
-	time_stamp = ''
-	eng_num_preps = 2
-	ger_num_preps = 3
-	PCA_dimension = 3
-	language_embedding_dimension = 4
+    data_directory = 'fake_data/'
+    time_stamp = ''
+    eng_num_preps = 2
+    ger_num_preps = 3
+    PCA_dimension = 3
+    language_embedding_dimension = 4
 
 X_train,y_train, X_validation, y_validation, X_test, y_test = load_english_data(english_filepath)
 
 # unique_data = [list(x) for x in set(tuple(x) for x in XY_data)]
 # print len(unique_data)
-# this shows that there are only a total of 101 unique X-Y pairs
+# this shows that there are only a total of 106 unique X-Y pairs
 
 
 # _______________first layer___________________#
@@ -123,11 +135,9 @@ remote = callbacks.RemoteMonitor(root='http://localhost:9000')
 
 # english_model.fit(X_train, y_train, nb_epoch=10, batch_size=1)
 english_model.fit(X_train, y_train, batch_size=1, validation_data=(X_validation, y_validation),
-	nb_epoch=training_epoch, callbacks=[remote])
+    nb_epoch=training_epoch, callbacks=[remote])
 
-english_score = english_model.evaluate(X_test, y_test, batch_size=10)
-# _____________________________________________#
-
+english_score = english_model.evaluate(X_test, y_test, batch_size=1)
 
 german_representation = Dense(language_embedding_dimension,activation='relu', init='uniform')(gate_layer)
 # bilingual_representation = merge([english_representation,german_representation], mode='concat')
@@ -150,49 +160,47 @@ print "english_score", english_score
 # print english_input.to_json()
 
 def output_experiment(models):
-	''' takes a list of models and
-	make a new directory with plots of models
-	weights of models, and summary of models'''
-	directory = time_stamp+'_bilingual_keras_output'
-	if not os.path.exists(directory):
-	    os.makedirs(directory)
+    ''' takes a list of models and
+    make a new directory with plots of models
+    weights of models, and summary of models'''
+    directory = time_stamp+'_bilingual_keras_output'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
-	for model in models:
-		weights = model.get_weights()
-		filename = model.name + '_weights.txt'
-		g = open(directory+'/'+filename,'w')
-		g.write(str(weights))
-		g.close()
-		model.summary()# prints out summaries
-		filename = model.name + '_json.txt'
-		g = open(directory+'/'+filename,'w')
-		g.write(str(model.to_json()))
-		g.close()
-
-		plot(model, show_shapes=True, to_file=directory+'/'+model.name+'.png')
-	# weights = bilingual_model.get_weights()
-	# g = open('keras_bilingual_weights.txt','w')
-	# g.write(str(weights))
-	# g.close()
+    for model in models:
+        weights = model.get_weights()
+        filename = model.name + '_weights.txt'
+        g = open(directory+'/'+filename,'w')
+        g.write(str(weights))
+        g.close()
+        model.summary()# prints out summaries
+        filename = model.name + '_json.txt'
+        g = open(directory+'/'+filename,'w')
+        g.write(str(model.to_json()))
+        g.close()
+        plot(model, show_shapes=True, to_file=directory+'/'+model.name+'.png')
 
 def visualize_gates():
-	x_old = init_gate[0].diagonal()
-	x_final = english_model.get_weights()[0].diagonal()
-	x_index = [i for i in range(len(x_old)+1)]
-	y_index = [0,1,2,3]
+    x_old = init_gate[0].diagonal()
+    x_final = english_model.get_weights()[0].diagonal()
+    x_index = [i for i in range(len(x_old)+1)]
+    y_index = [0,1,2,3]
 
-	intensity = np.concatenate(([x_old], [x_final], [np.subtract(x_final,x_old)]), axis=0)
+    intensity = np.concatenate(([x_old], [x_final], [np.subtract(x_final,x_old)]), axis=0)
 
-	print x_old
-	print x_final
-	print np.subtract(x_final, x_old)
+    print x_old
+    print x_final
+    print np.subtract(x_final, x_old)
 
-	x, y = np.meshgrid(x_index, y_index)
+    x, y = np.meshgrid(x_index, y_index)
 
-	plt.pcolormesh(x, y, intensity)
-	plt.colorbar() #need a colorbar to show the intensity scale
-	plt.show() #boom
+    plt.pcolormesh(x, y, intensity)
+    plt.colorbar() #need a colorbar to show the intensity scale
+    plt.show() #boom
 
 
-# output_experiment([english_model, bilingual_model])
-# visualize_gates()
+output_experiment([english_model, bilingual_model])
+visualize_gates()
+
+for x,y in zip(english_model.predict(X_test, batch_size=1), y_test):
+  print np.where(x==x.max())[0][0], np.where(y==y.max())[0]
