@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import time
 import itertools
 import json
+from collections import Counter
 
 ''' [x]test on 101 unique points ceiling
     [] and test on 71 real ones
@@ -23,6 +24,7 @@ import json
     []make graphs from paper of top situation answers vs time
     []make inputs all be arrays of integers not list strings
     [] read in number of prepositions per language automatically
+    [] introduce callbacks for learning plots
 '''
 np.set_printoptions(threshold=np.nan)
 
@@ -57,6 +59,8 @@ def load_language_data(language):
     y_data = []
     X_test = []
     y_test = []
+    counting_situations_1 = []
+    counting_situations_2 = []
     data_situations = {}
     test_situation = []
     second_language = [0 for x in range(ger_num_preps)]
@@ -65,27 +69,42 @@ def load_language_data(language):
         data = line.strip().split(',')
         data = map(float,data)
         data.insert(PCA_dimension+1,0) # sets the language 0 is english
+
+        counting_situations_1 += [data[0]]
+
         X_data.append(data[1:PCA_dimension+2]) #add for language, rid of situation
         XY_data.append(data)
     for line in g:
         data = line.strip().split(',')
         data = map(int,data)
+
+        for key, value in term_indices[language].iteritems():
+          if value == data[0]:
+            break
+
+        counting_situations_2 += [key]
+
         y_label = [0 for x in range(dut_num_preps+ger_num_preps)]
         y_label[data[0]] = 1 #set right answer to 1
         y_data += [y_label]
 
+    counting_situations = zip(counting_situations_1,counting_situations_2)
+    c = Counter(counting_situations)
+    print sorted(c.items())
 
-    X_train = X_data[:5000]
-    y_train = y_data[:5000]
+    X_train = X_data[:2500]
+    y_train = y_data[:2500]
     # data[1] is the preposition
+
 
     for line in h:
         data = line.strip().split(',') # data[0] is situation number
         data_situations[int(data[0])] = term_indices[language][data[1]]
+        # data_situations[int(data[0])] = [data[1]]
+
 
     XY_test = [list(x) for x in set(tuple(x) for x in XY_data)] #unique 106
 
-    # print data_situations[63]
 
     for unique in XY_test:
         test_situation += [int(unique[0])]
@@ -117,7 +136,7 @@ REAL = True
 # REAL = False
 language = 'dut'
 pca_filepath = 'results_PCA.csv'
-training_epoch = 150
+training_epoch = 200
 if (REAL == True):
     time_stamp = time.strftime("%m-%d-%Y-%H:%M")
     data_directory = 'gen_data/'
@@ -251,10 +270,16 @@ for x,y,z in zip(english_model.predict(X_test, batch_size=1), y_test, test_situa
   correct_answer = np.where(y==y.max())[0][0]
   if(prediction == correct_answer):
     right_answer[z-1] += 1
-  elif(prediction_2 == correct_answer):
-    second_answer[z-1] += 1
+  # elif(prediction_2 == correct_answer):
+  #   print " " + str(prediction), correct_answer
+  #   second_answer[z-1] += 1
   else:
+    # print " " + str(prediction), correct_answer
     wrong_answer[z-1] += 1
+  for key, value in term_indices[language].iteritems():
+    if value == prediction:
+      break
+  print z,key #this prints out situation, preposition predicted
 
 N = 71
 
@@ -283,6 +308,16 @@ autolabel(rects1)
 autolabel(rects2)
 autolabel(rects3)
 plt.show()
+
+print "sums of right, 2nd, wrong"
+print sum(right_answer)
+print sum(second_answer)
+print sum(wrong_answer)
+
+print
+for i in range(len(second_answer)):
+  if(second_answer[i]+wrong_answer[i] != 0):
+    print i
 
 # def main():
 
