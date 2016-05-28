@@ -1,4 +1,3 @@
-import sys, os
 import numpy as np
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
@@ -12,6 +11,7 @@ import time
 import itertools
 import json
 from collections import Counter
+from itertools import izip
 
 ''' [x]test on 101 unique points ceiling
     [] and test on 71 real ones
@@ -45,81 +45,93 @@ def set_pca_weights(pca_filepath):
     return [pca_weights,bias]
 
 def load_language_data(language):
-    ''' 1. seperate train and test better
-        2. change number of iterations for test/train
-        dut_x = situation#, 56 floats \n
-        dut_y = preposition number \n
-    '''
-    f = open(data_directory+language+'_x','r')
-    g = open(data_directory+language+'_y','r')
-    h = open(data_directory+'golden_'+language,'r')
+  ''' 1. seperate train and test better
+      2. change number of iterations for test/train
+      dut_x = situation#, 56 floats \n
+      dut_y = preposition number \n
+  '''
+  f = open(data_directory+language+'_x','r')
+  g = open(data_directory+language+'_y','r')
+  h = open(data_directory+'golden_'+language,'r')
+  situation_x_data = {}
+  x_train = []
+  y_train = []
+  x_validation = []
+  y_validation =[]
+  x_test = []
+  y_test = []
 
-    XY_data=[]
-    X_data = []
-    y_data = []
-    X_test = []
-    y_test = []
-    counting_situations_1 = []
-    counting_situations_2 = []
-    data_situations = {}
-    test_situation = []
-    second_language = [0 for x in range(ger_num_preps)]
+  for x_line,y_line in izip(f,g):
+    x_data = x_line.strip().split(',')
+    y_data = y_line.strip().split(',')
+    x_data.insert(PCA_dimension+1,0)
 
-    for line in f:
-        data = line.strip().split(',')
-        data = map(float,data)
-        data.insert(PCA_dimension+1,0) # sets the language 0 is english
+    sit_num = int(x_data[0])
+    situation_x_data[sit_num] = map(float,x_data[1:])
+    # print x_data
+    x_train += [x_data[1:]]
+    y = [0 for x in range(dut_num_preps + ger_num_preps)]
+    y[map(int,y_data)[0]] = 1
+    y_train += [y]
 
-        counting_situations_1 += [data[0]]
+  #first add language feature
+  sit_number_to_preps = make_sit_to_prep(language)
+  xy_test_data, test_situation = make_test_data(language,sit_number_to_preps, situation_x_data)
+  for xy in xy_test_data:
+    x_test += [xy[:-1]]
+    y = [0 for x in range(dut_num_preps + ger_num_preps)]
+    y[xy[-1:][0]] = 1
+    # y[] = 1
+    y_test += [y]
 
-        X_data.append(data[1:PCA_dimension+2]) #add for language, rid of situation
-        XY_data.append(data)
-    for line in g:
-        data = line.strip().split(',')
-        data = map(int,data)
+  x_validation = x_test
+  y_validation = y_test
 
-        for key, value in term_indices[language].iteritems():
-          if value == data[0]:
-            break
+  print len(x_train)
+  print len(y_train)
+  print len(x_validation)
+  print len(y_validation)
+  print len(x_test)
+  print len(y_test)
+  print len(test_situation)
+  print
+  print len(x_train[0])
+  print len(y_train[0])
+  print len(x_validation[0])
+  print len(y_validation[0])
+  print len(x_test[0])
+  print len(y_test[0])
+  # print len(test_situation[0])
 
-        counting_situations_2 += [key]
+  return x_train, y_train, x_validation, y_validation, x_test, y_test, test_situation
 
-        y_label = [0 for x in range(dut_num_preps+ger_num_preps)]
-        y_label[data[0]] = 1 #set right answer to 1
-        y_data += [y_label]
+def prep_num_to_prep(language, prep_num):
+  for key in term_indices[language].keys():
+    if(prep_num == term_indices[language][key]):
+      return key
 
-    counting_situations = zip(counting_situations_1,counting_situations_2)
-    c = Counter(counting_situations)
-    print sorted(c.items())
+def make_test_data(language,situations_to_preps, situation_x_data):
+  ''' should this have to read through all lines '''
+  xy_test_data = []
+  test_situation  = []
+  for situation in situations_to_preps.keys():
+    xy = situation_x_data[situation]+[situations_to_preps[situation]]
+    xy_test_data += [xy]
+    test_situation += [situation]
 
-    X_train = X_data[:2500]
-    y_train = y_data[:2500]
-    # data[1] is the preposition
+  return xy_test_data, test_situation
 
+def make_sit_to_prep(language):
+  test_data = set([]) # 56(PCA)+1(lang)|label
+  situations_to_preps = {} # map 71 situations to the correct preposition number
+  f = open(data_directory+'golden_'+language,'r')
+  for line in f:
+    line = line.strip().split(',')
+    #line = 63(sit#),over(prep),probability...
+    situations_to_preps[int(line[0])] = term_indices[language][line[1]]
+    #add asserts about length of data_structures
+  return situations_to_preps
 
-    for line in h:
-        data = line.strip().split(',') # data[0] is situation number
-        data_situations[int(data[0])] = term_indices[language][data[1]]
-        # data_situations[int(data[0])] = [data[1]]
-
-
-    XY_test = [list(x) for x in set(tuple(x) for x in XY_data)] #unique 106
-
-
-    for unique in XY_test:
-        test_situation += [int(unique[0])]
-
-        X_test.append(unique[1:PCA_dimension+2])
-        y_label = [0 for x in range(dut_num_preps+ger_num_preps)]
-        # situation number is unique[0]
-        # then get corresponding term index encoding
-        y_label[data_situations[unique[0]]] = 1
-        y_test.append(y_label)
-
-    X_validation = X_test
-    y_validation = y_test
-
-    return X_train, y_train, X_validation, y_validation, X_test, y_test, test_situation
 
 def lang_term_number(language, term):
     print term, data[language][term]
@@ -130,13 +142,12 @@ def load_term_indices():
     # for language in data:
     #     print language
     #     print data[language]
-        # os.exit()
 
 REAL = True
 # REAL = False
 language = 'dut'
 pca_filepath = 'results_PCA.csv'
-training_epoch = 200
+training_epoch = 1
 if (REAL == True):
     time_stamp = time.strftime("%m-%d-%Y-%H:%M")
     data_directory = 'gen_data/'
@@ -219,8 +230,6 @@ def output_experiment(models):
     make a new directory with plots of models
     weights of models, and summary of models'''
     directory = time_stamp+'_bilingual_keras_output'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
 
     for model in models:
         weights = model.get_weights()
