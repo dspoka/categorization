@@ -12,6 +12,10 @@ import itertools
 import json
 from collections import Counter
 from itertools import izip
+import os
+import keras.callbacks
+from keras.callbacks import ModelCheckpoint
+
 
 ''' [x]test on 101 unique points ceiling
     [] and test on 71 real ones
@@ -60,6 +64,7 @@ def load_language_data(language):
   y_validation =[]
   x_test = []
   y_test = []
+  situation_train = []
 
   for x_line,y_line in izip(f,g):
     x_data = x_line.strip().split(',')
@@ -67,6 +72,8 @@ def load_language_data(language):
     x_data.insert(PCA_dimension+1,0)
 
     sit_num = int(x_data[0])
+    situation_train += [sit_num] # list of all training situations
+
     situation_x_data[sit_num] = map(float,x_data[1:])
     # print x_data
     x_train += [x_data[1:]]
@@ -87,23 +94,24 @@ def load_language_data(language):
   x_validation = x_test
   y_validation = y_test
 
-  print len(x_train)
-  print len(y_train)
-  print len(x_validation)
-  print len(y_validation)
-  print len(x_test)
-  print len(y_test)
-  print len(test_situation)
-  print
-  print len(x_train[0])
-  print len(y_train[0])
-  print len(x_validation[0])
-  print len(y_validation[0])
-  print len(x_test[0])
-  print len(y_test[0])
+  #add a bunch of asserts, about sizes, and types of things
   # print len(test_situation[0])
 
+  # counting_situations(situation_train)
+
   return x_train, y_train, x_validation, y_validation, x_test, y_test, test_situation
+
+def counting_situations(situations):
+  g = open(data_directory+language+'_y','r')
+  y_s = []
+  for y_line in g:
+    y_data = y_line.strip().split(',')
+    y_s += map(int,y_data)
+  preps = []
+  for y in y_s:
+    preps += [prep_num_to_prep(language,y)]
+  c = Counter(zip(situations,preps))
+  print sorted(c.items())
 
 def prep_num_to_prep(language, prep_num):
   for key in term_indices[language].keys():
@@ -143,26 +151,37 @@ def load_term_indices():
     #     print language
     #     print data[language]
 
-REAL = True
-# REAL = False
+mode = 'synthetic'
 language = 'dut'
 pca_filepath = 'results_PCA.csv'
-training_epoch = 1
-if (REAL == True):
-    time_stamp = time.strftime("%m-%d-%Y-%H:%M")
+training_epoch = 200
+if (mode == 'real'):
+    time_stamp = time.strftime("%m-%d-%Y-%H-%M")
     data_directory = 'gen_data/'
     german_filepath = 'NEED TO FILL IN'
     dut_num_preps = 14
     ger_num_preps = 10
     PCA_dimension = 56
     language_embedding_dimension = 28
-else:
+elif(mode =='fake'):
     data_directory = 'fake_data/'
     time_stamp = ''
     dut_num_preps = 2
     ger_num_preps = 3
     PCA_dimension = 3
     language_embedding_dimension = 4
+else:
+    data_directory = 'synthetic_data/'
+    time_stamp = ''
+    language = 'lang_1'
+    dut_num_preps = 2
+    ger_num_preps = 2
+    PCA_dimension = 2
+    language_embedding_dimension = 4
+
+directory = time_stamp+'_bilingual_keras_output/'
+if not os.path.exists(directory):
+      os.makedirs(directory)
 
 term_indices = json.load(open(data_directory+'term_indices'))
 X_train,y_train, X_validation, y_validation, X_test, y_test, test_situation = load_language_data(language)
@@ -192,6 +211,11 @@ english_model = Model(name='english', input=language_input, output=english_predi
 
 # ____________Optimization & Training___________#
 sgd = SGD(lr=0.1, decay=1e-6)
+
+
+checkpointer = ModelCheckpoint(filepath=directory+language+'_weights.{epoch:02d}.hdf5', monitor='val_acc', verbose=1, save_best_only=True)
+
+
 english_model.compile(loss='mean_squared_error',
               optimizer=sgd,
               metrics=['accuracy'])
@@ -201,7 +225,7 @@ remote = callbacks.RemoteMonitor(root='http://localhost:9000')
 
 # english_model.fit(X_train, y_train, nb_epoch=10, batch_size=1)
 english_model.fit(X_train, y_train, batch_size=1, validation_data=(X_validation, y_validation),
-    nb_epoch=training_epoch, callbacks=[remote])
+    nb_epoch=training_epoch, callbacks=[remote,checkpointer])
 
 english_score = english_model.evaluate(X_test, y_test, batch_size=1)
 
@@ -229,14 +253,12 @@ def output_experiment(models):
     ''' takes a list of models and
     make a new directory with plots of models
     weights of models, and summary of models'''
-    directory = time_stamp+'_bilingual_keras_output'
-
+    if not os.path.exists(directory):
+      os.makedirs(directory)
     for model in models:
-        weights = model.get_weights()
-        filename = model.name + '_weights.txt'
-        g = open(directory+'/'+filename,'w')
-        g.write(str(weights))
-        g.close()
+        filepath_weights = directory+model.name +'_weights.h5'
+        model.save_weights(filepath_weights)
+
         model.summary()# prints out summaries
         filename = model.name + '_json.txt'
         g = open(directory+'/'+filename,'w')
@@ -244,9 +266,9 @@ def output_experiment(models):
         g.close()
         plot(model, show_shapes=True, to_file=directory+'/'+model.name+'.png')
 
-def visualize_gates():
+def visualize_gates(model):
     x_old = init_gate[0].diagonal()
-    x_final = english_model.get_weights()[0].diagonal()
+    x_final = model.get_weights()[0].diagonal()
     x_index = [i for i in range(len(x_old)+1)]
     y_index = [0,1,2,3]
 
@@ -263,9 +285,10 @@ def visualize_gates():
     plt.show() #boom
 
 
-# output_experiment([english_model, bilingual_model])
-# visualize_gates()
+output_experiment([english_model, bilingual_model])
+visualize_gates(english_model)
 
+os.exit()
 
 right_answer = [0 for x in range(71)]
 second_answer = [0 for x in range(71)]

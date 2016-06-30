@@ -34,10 +34,12 @@
 # synthetic data,
 # couple papers,
 # data from the hermann,
-# error analysis
+# error analysisff
 # per time. n preposition * n preposition confusion matrix counts
+
 import numpy as np
 import os
+import json
 
 # 0,0          1,0
 # |     |     |
@@ -54,7 +56,7 @@ import os
 # 4: y
 
 # syn_lang_1:
-#   1 2 3 4 5 (synthethic Language)
+#   1 2 3 4 5 (synthetic Language)
 # 1|a|c|e|g|i
 # 2|b|c|f|h|j
 # 3|a|d|f|h|k
@@ -64,7 +66,8 @@ synthetic_directory = 'synthetic_data/'
 if not os.path.exists(synthetic_directory):
       os.makedirs(synthetic_directory)
 
-synthetic_term_indices = {'a' : 0 ,'b' : 1,'c' : 2,'d' : 3,'e' : 4,'f' : 5,'g' : 6,'h' : 7,'i' : 8,'j' : 9,'k' : 10}
+synthetic_term_indices = {'lang_1' : {'a' : 0 ,'b' : 1}, 'lang_2' : {'c' : 2,'d' : 3}, 'lang_3' : {'e' : 4,'f' : 5}, 'lang_4' : {'g' : 6,'h' : 7}, 'lang_5' : {'i' : 8,'j' : 9,'k' : 10}}
+json.dump(synthetic_term_indices, open(synthetic_directory+'term_indices','w'))
 
 def make_synthetic_input():
     np.random.seed(seed=0)
@@ -77,7 +80,7 @@ def make_synthetic_input():
     lang_4 = []
     lang_5 = []
     synthetic_langs = [lang_1,lang_2,lang_3,lang_4,lang_5]
-    for i in range(10):
+    for i in range(100):
         temp = np.random.rand(1,2)
         if(temp[0][0] < .5 and temp[0][1] < .5):
             # 1 quadrant
@@ -125,7 +128,7 @@ def make_synthetic_input():
         g = open(synthetic_directory+'lang_'+str(i)+'_y', 'w')
         for a,b in zip(situations, lang):
             f.write(a+','+b+'\n')
-            g.write(str(synthetic_term_indices[b])+'\n')
+            g.write(str(synthetic_term_indices['lang_'+str(i)][b])+'\n')
         i += 1
         f.close()
         g.close()
