@@ -66,7 +66,7 @@ synthetic_directory = 'synthetic_data/'
 if not os.path.exists(synthetic_directory):
       os.makedirs(synthetic_directory)
 
-synthetic_term_indices = {'lang_1' : {'a' : 0 ,'b' : 1}, 'lang_2' : {'c' : 2,'d' : 3}, 'lang_3' : {'e' : 4,'f' : 5}, 'lang_4' : {'g' : 6,'h' : 7}, 'lang_5' : {'i' : 8,'j' : 9,'k' : 10}}
+synthetic_term_indices = {'lang_1' : {'a' : 0 ,'b' : 1}, 'lang_2' : {'c' : 0,'d' : 1}, 'lang_3' : {'e' : 0,'f' : 1}, 'lang_4' : {'g' : 0,'h' : 1}, 'lang_5' : {'i' : 0,'j' : 1,'k' : 2}}
 json.dump(synthetic_term_indices, open(synthetic_directory+'term_indices','w'))
 
 def make_synthetic_input():
